@@ -39,6 +39,9 @@ public class SalonController {
     @Autowired
     private SalonService service;
 
+//    @Parameter(hidden = true)
+//    HttpServletRequest request
+    
     // ✅ BOOK
     @PostMapping("/book")
     public ResponseEntity<ApiResponse<SalonAppointmentResponse>> book(@RequestBody BookingRequest request) {
