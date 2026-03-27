@@ -1,5 +1,6 @@
 package com.schedulink.salon.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -117,7 +118,8 @@ public class SalonController {
                 .message("Providers fetched")
                 .data(response)
                 .build();
-    }
+    } 
+    
 
     // ✅ GET SERVICES
     @GetMapping("/services/{providerId}")
@@ -169,6 +171,65 @@ public class SalonController {
                 .success(true)
                 .message("Status updated")
                 .data(SalonMapper.toResponse(appointment))
+                .build();
+    }
+    
+    @GetMapping("/my-bookings")
+    public ApiResponse<List<SalonAppointmentResponse>> getMyBookings(HttpServletRequest request) {
+
+        Long userId = (Long) request.getAttribute("userId");
+        String roleStr = (String) request.getAttribute("role");
+
+        if (userId == null || roleStr == null) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        Role role = Role.valueOf(roleStr);
+
+        List<SalonAppointment> appointments = service.getMyBookings(userId, role);
+
+        List<SalonAppointmentResponse> response = appointments.stream()
+                .map(SalonMapper::toResponse)
+                .toList();
+
+        return ApiResponse.<List<SalonAppointmentResponse>>builder()
+                .success(true)
+                .message("Bookings fetched")
+                .data(response)
+                .build();
+    }
+    
+    @GetMapping("/admin/providers")
+    public ApiResponse<List<SalonProviderResponse>> getAllProviders() {
+
+        List<SalonProvider> providers = service.getAllProviders();
+
+        List<SalonProviderResponse> response = providers.stream()
+                .map(SalonMapper::toProviderResponse)
+                .toList();
+
+        return ApiResponse.<List<SalonProviderResponse>>builder()
+                .success(true)
+                .message("All providers fetched")
+                .data(response)
+                .build();
+    }
+    
+    @PutMapping("/appointment/{id}/reschedule")
+    public ApiResponse<SalonAppointmentResponse> reschedule(
+            @PathVariable Long id,
+            @RequestParam String newTime,
+            HttpServletRequest request
+    ) {
+
+        Long userId = (Long) request.getAttribute("userId");
+
+        SalonAppointment updated = service.reschedule(id, userId, LocalDateTime.parse(newTime));
+
+        return ApiResponse.<SalonAppointmentResponse>builder()
+                .success(true)
+                .message("Rescheduled successfully")
+                .data(SalonMapper.toResponse(updated))
                 .build();
     }
 }

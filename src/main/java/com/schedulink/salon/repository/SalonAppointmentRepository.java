@@ -38,4 +38,9 @@ public interface SalonAppointmentRepository
             LocalDateTime startTime,
             LocalDateTime endTime
     );
+    
+    
+    List<SalonAppointment> findByCustomerId(Long customerId);
+
+    List<SalonAppointment> findByProviderId(Long providerId);
 }

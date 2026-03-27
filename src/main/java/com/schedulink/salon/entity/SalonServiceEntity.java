@@ -18,7 +18,7 @@ public class SalonServiceEntity {
     private Long providerId;
 
     private String name;
-    private int duration;   // minutes
-    private double price;
+    private int duration;  
+    private double price;  
     private String description;
 }

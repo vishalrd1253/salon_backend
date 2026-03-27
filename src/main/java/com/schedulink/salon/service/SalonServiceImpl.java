@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.schedulink.salon.dto.ProviderApplyRequest;
@@ -188,6 +191,85 @@ public class SalonServiceImpl implements SalonService {
 
         return appointmentRepo.save(appointment);
     }
+
+	@Override
+	public Page<SalonProvider> getProviders(int page, int size) {
+		Pageable pageable = PageRequest.of(page, size);
+ 
+	    return providerRepo.findByApprovedTrue(pageable);
+	}
+
+	
+	@Override
+	public List<SalonAppointment> getMyBookings(Long userId, Role role) {
+
+	    if (role == Role.USER) {
+	        return appointmentRepo.findByCustomerId(userId);
+	    }
+
+	    if (role == Role.PROVIDER) {
+	        return appointmentRepo.findByProviderId(userId);
+	    }
+
+	    if (role == Role.ADMIN) {
+	        return appointmentRepo.findAll();
+	    }
+
+	    throw new RuntimeException("Invalid role");
+	}
+
+	@Override
+	public List<SalonProvider> getAllProviders() {
+		return providerRepo.findAll();
+	}
+
+	@Override
+	public SalonAppointment reschedule(Long appointmentId, Long userId, LocalDateTime newTime) {
+
+	    SalonAppointment old = appointmentRepo.findById(appointmentId)
+	            .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+	    // ✅ Only owner can reschedule
+	    if (!old.getCustomerId().equals(userId)) {
+	        throw new RuntimeException("Unauthorized");
+	    }
+
+	    // ❌ Cannot reschedule completed/cancelled
+	    if (old.getStatus() != Status.PENDING && old.getStatus() != Status.CONFIRMED) {
+	        throw new RuntimeException("Cannot reschedule this appointment");
+	    }
+
+	    // 🔁 Cancel old
+	    old.setStatus(Status.CANCELLED);
+	    appointmentRepo.save(old);
+
+	    // 📦 Get service for duration
+	    SalonServiceEntity service = serviceRepo.findById(old.getServiceId())
+	            .orElseThrow(() -> new RuntimeException("Service not found"));
+
+	    LocalDateTime endTime = newTime.plusMinutes(service.getDuration());
+
+	    // ⚠️ Conflict check
+	    boolean conflict = appointmentRepo.existsConflict(
+	            old.getProviderId(), newTime, endTime
+	    );
+
+	    if (conflict) {
+	        throw new RuntimeException("New slot not available");
+	    }
+
+	    // 🆕 Create new booking
+	    SalonAppointment newBooking = SalonAppointment.builder()
+	            .customerId(old.getCustomerId())
+	            .providerId(old.getProviderId())
+	            .serviceId(old.getServiceId())
+	            .startTime(newTime)
+	            .endTime(endTime)
+	            .status(Status.PENDING)
+	            .build();
+
+	    return appointmentRepo.save(newBooking);
+	}
     
     
     

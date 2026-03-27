@@ -3,6 +3,8 @@ package com.schedulink.salon.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+
 import com.schedulink.salon.dto.ProviderApplyRequest;
 import com.schedulink.salon.dto.ServiceRequest;
 import com.schedulink.salon.entity.Role;
@@ -30,4 +32,12 @@ public interface SalonService {
 	SalonAppointment updateStatus(Long appointmentId, Status status, Long userId, Role role);
 	
 	SalonAppointment cancelAppointment(Long appointmentId, Long userId, Role role);
+
+	Page<SalonProvider> getProviders(int page, int size);
+
+	List<SalonAppointment> getMyBookings(Long userId, Role role);
+
+	List<SalonProvider> getAllProviders();
+
+	SalonAppointment reschedule(Long appointmentId, Long userId, LocalDateTime newTime);
 } 
